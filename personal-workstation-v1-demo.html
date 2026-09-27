@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Personal Workstation V1 的無資料、離線前端展示版本。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Personal Workstation V1 Demo</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #252930;
+      --bg-deep: #1b1f26;
+      --panel: rgba(57, 65, 77, .72);
+      --panel-soft: rgba(163, 181, 213, .06);
+      --panel-strong: #3a424e;
+      --line: rgba(173, 190, 211, .16);
+      --line-strong: rgba(173, 190, 211, .32);
+      --text: #e2e5eb;
+      --muted: #aeb9c9;
+      --faint: #7e8999;
+      --accent: #a4b8d5;
+      --accent-ink: #222b39;
+      --accent-soft: rgba(154, 177, 209, .15);
+      --success: #acd1b7;
+      --warning: #e2c18d;
+      --danger: #e3abb2;
+      --radius: 17px;
+      --shadow: 0 18px 60px rgba(5, 10, 18, .18);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+      font-synthesis: none;
+      line-height: 1.55;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 78% -10%, rgba(91, 108, 136, .45), transparent 48%),
+        radial-gradient(ellipse at -10% 70%, rgba(66, 79, 101, .24), transparent 40%),
+        var(--bg);
+    }
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    button, .button {
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: rgba(73, 82, 99, .34);
+      padding: 8px 13px;
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, transform .16s ease;
+    }
+    button:hover { background: rgba(100, 114, 138, .34); border-color: rgba(173, 190, 211, .48); }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 2px solid #b8d3f8;
+      outline-offset: 3px;
+    }
+    button[disabled] { cursor: not-allowed; opacity: .45; }
+    .skip-link {
+      position: fixed; left: 16px; top: -80px; z-index: 100;
+      padding: 10px 14px; border-radius: 8px; background: #dce7f5; color: #252930;
+    }
+    .skip-link:focus { top: 12px; }
+    .demo-strip {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      padding: 7px 18px; border-bottom: 1px solid rgba(192, 207, 229, .12);
+      color: #c8d3e1; background: rgba(18, 23, 31, .62); font-size: .76rem;
+    }
+    .demo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 4px rgba(172, 209, 183, .10); }
+    .app-header {
+      position: relative; z-index: 30; display: flex; justify-content: space-between; align-items: center;
+      gap: 20px; padding: 13px 3vw; border-bottom: 1px solid rgba(185, 198, 223, .13);
+      background: rgba(48, 54, 64, .68); backdrop-filter: blur(20px);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid var(--line-strong);
+      border-radius: 11px; background: linear-gradient(145deg, rgba(180, 202, 232, .23), rgba(90, 108, 132, .05));
+      font-size: .78rem; font-weight: 800; letter-spacing: -.04em;
+    }
+    .brand-text strong { display: block; font-size: .98rem; letter-spacing: .02em; white-space: nowrap; }
+    .brand-text span { display: block; color: var(--muted); font-size: .57rem; letter-spacing: .19em; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .privacy-label { color: var(--muted); font-size: .73rem; white-space: nowrap; }
+    .icon-button { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; position: relative; }
+    .icon-button svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+    .notification-wrap { position: relative; }
+    .notification-panel {
+      position: absolute; z-index: 60; top: calc(100% + 10px); right: 0; width: min(370px, calc(100vw - 28px));
+      padding: 18px; background: #343b46; border: 1px solid var(--line-strong); border-radius: 15px;
+      box-shadow: 0 20px 70px rgba(5, 9, 16, .45);
+    }
+    .notification-panel[hidden] { display: none; }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .panel-head h2 { margin: 0; font-size: .98rem; }
+    .primary-nav {
+      position: sticky; top: 0; z-index: 20; display: flex; gap: 4px; overflow-x: auto;
+      padding: 7px 3vw; border-bottom: 1px solid rgba(185, 198, 223, .10);
+      background: rgba(41, 47, 56, .78); backdrop-filter: blur(18px); scrollbar-width: thin;
+    }
+    .nav-button { flex: 0 0 auto; border-color: transparent; background: transparent; color: var(--muted); padding: 8px 12px; }
+    .nav-button[aria-current="page"] { color: #eef3fa; border-color: rgba(166, 186, 214, .27); background: var(--accent-soft); }
+    .main { width: min(1920px, 100%); margin: auto; padding: 20px 3vw 40px; }
+    .view[hidden] { display: none; }
+    .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 18px; }
+    .page-heading h1 { margin: 0; font-size: clamp(1.55rem, 3vw, 2rem); font-weight: 600; letter-spacing: .025em; }
+    .eyebrow { margin: 0 0 6px; color: #afc2dc; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; }
+    .muted { color: var(--muted); }
+    .small { font-size: .76rem; }
+    .toolbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+    .primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 700; }
+    .primary:hover { background: #bdcce1; }
+    .ghost { background: transparent; border-color: transparent; color: var(--muted); }
+    .card {
+      min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(163, 181, 213, .09), rgba(163, 181, 213, .035));
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .02) inset; backdrop-filter: blur(12px);
+    }
+    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .card-head h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .card-head h2 span { color: var(--faint); font-size: .7rem; margin-left: 7px; font-weight: 500; }
+    .module-grip { color: var(--faint); letter-spacing: .12em; font-size: .75rem; user-select: none; }
+    .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, .85fr); gap: 14px; align-items: start; }
+    .dashboard-main, .dashboard-side { display: grid; gap: 14px; min-width: 0; }
+    .empty-state { display: grid; justify-items: center; align-content: center; min-height: 142px; padding: 22px; text-align: center; color: var(--muted); }
+    .empty-state.compact { min-height: 95px; }
+    .empty-icon { width: 42px; height: 42px; margin-bottom: 10px; color: #8191a6; }
+    .empty-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.4; }
+    .empty-state strong { color: #ced6e2; font-size: .9rem; font-weight: 600; }
+    .empty-state p { margin: 4px 0 0; max-width: 390px; font-size: .75rem; }
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+    .stat { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(23, 29, 37, .22); }
+    .stat strong { display: block; font-size: 1.35rem; font-weight: 500; }
+    .stat span { display: block; color: var(--muted); font-size: .68rem; }
+    .rate-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .75rem; }
+    .rate-table th, .rate-table td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+    .rate-table th:first-child, .rate-table td:first-child { text-align: left; }
+    .rate-table th { color: var(--muted); font-weight: 500; }
+    .unavailable { color: var(--faint); }
+    .customizer { display: none; padding: 12px 0 2px; border-top: 1px solid var(--line); margin-top: 10px; }
+    .customizer.is-open { display: flex; gap: 7px; flex-wrap: wrap; }
+    .customizer button { padding: 5px 9px; font-size: .7rem; }
+    .board { display: grid; grid-template-columns: repeat(3, minmax(275px, 1fr)); gap: 15px; overflow-x: auto; padding-bottom: 12px; }
+    .column { min-height: 430px; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: linear-gradient(135deg, rgba(163, 181, 213, .08), rgba(163, 181, 213, .025)); }
+    .column-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .column-head h2 { margin: 0; font-size: .96rem; }
+    .count { color: var(--faint); font-size: .73rem; font-weight: 500; margin-left: 5px; }
+    .add-column-task { width: 31px; height: 31px; padding: 0; border-color: transparent; background: transparent; font-size: 1.15rem; }
+    .task-list { min-height: 340px; }
+    .task-card { padding: 13px; margin-bottom: 10px; border: 1px solid rgba(215, 229, 255, .13); border-radius: 12px; background: rgba(66, 75, 88, .72); box-shadow: 0 5px 20px rgba(16, 23, 32, .09); }
+    .task-card h3 { margin: 9px 0 6px; font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+    .task-card-top, .task-card-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .priority { padding: 2px 7px; border-radius: 5px; background: rgba(178, 200, 237, .09); color: #c3d1e5; font-size: .63rem; }
+    .priority.High { color: #e1cda9; background: rgba(219, 192, 155, .13); }
+    .priority.Urgent { color: #e5b8bd; background: rgba(223, 169, 174, .13); }
+    .blocked { color: #efbec4; border: 1px solid rgba(213, 138, 150, .33); border-radius: 999px; padding: 2px 7px; font-size: .62rem; }
+    .task-card p { margin: 0 0 10px; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+    .task-card select { width: auto; padding: 5px 25px 5px 8px; font-size: .68rem; }
+    .remove-task { padding: 4px 7px; border-color: transparent; background: transparent; color: var(--faint); font-size: .68rem; }
+    .board-empty { min-height: 300px; border: 1px dashed rgba(173, 190, 211, .14); border-radius: 11px; }
+    .calendar-shell { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(70px, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .weekday, .day { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .weekday:nth-child(7n), .day:nth-child(7n) { border-right: 0; }
+    .weekday { padding: 8px; text-align: center; color: var(--muted); background: rgba(25, 31, 39, .25); font-size: .68rem; }
+    .day { min-height: 91px; padding: 8px; color: #aeb9c8; font-size: .72rem; }
+    .day.outside { color: #66717f; background: rgba(20, 25, 33, .13); }
+    .day.today { box-shadow: inset 0 0 0 1px rgba(164, 184, 213, .65); color: #eef4fc; background: rgba(154, 177, 209, .08); }
+    .calendar-side { display: grid; gap: 14px; align-content: start; }
+    .integration-state { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .75rem; }
+    .state-dot { width: 7px; height: 7px; border-radius: 50%; background: #7f8997; }
+    .chat-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; }
+    .conversation-side { min-height: 520px; }
+    .chat-panel { min-height: 520px; display: flex; flex-direction: column; }
+    .chat-empty { flex: 1; }
+    .composer { margin-top: auto; }
+    textarea, input, select {
+      width: 100%; color: var(--text); background: rgba(35, 40, 48, .72); border: 1px solid rgba(129, 146, 170, .34);
+      border-radius: 8px; padding: 10px;
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    label { display: block; margin-bottom: 13px; color: #c0c8d5; font-size: .78rem; }
+    label input, label select, label textarea { display: block; margin-top: 6px; }
+    .compose-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; }
+    .placeholder-page { min-height: 420px; }
+    .integration-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .integration-card h2 { margin: 0 0 8px; font-size: .96rem; }
+    .integration-card p { color: var(--muted); font-size: .76rem; min-height: 48px; }
+    .status-pill { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: .68rem; }
+    .modal { border: 1px solid var(--line-strong); border-radius: 18px; background: #343b46; color: var(--text); width: min(560px, calc(100vw - 30px)); padding: 0; box-shadow: 0 25px 100px rgba(6, 10, 18, .7); }
+    .modal::backdrop { background: rgba(17, 23, 33, .74); backdrop-filter: blur(5px); }
+    .modal-inner { padding: 23px; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 18px; }
+    .modal-head h2 { margin: 0; font-size: 1.15rem; }
+    .close-modal { width: 36px; height: 36px; padding: 0; border-color: transparent; background: transparent; font-size: 1.2rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .checkbox { display: flex; align-items: center; gap: 9px; }
+    .checkbox input { width: auto; margin: 0; }
+    .blocked-reason[hidden] { display: none; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+    .toast {
+      position: fixed; z-index: 100; left: 50%; bottom: 24px; translate: -50% 20px; opacity: 0; pointer-events: none;
+      max-width: min(540px, calc(100vw - 30px)); padding: 11px 15px; border: 1px solid var(--line-strong);
+      border-radius: 10px; background: #3a424e; color: #e5ebf3; box-shadow: var(--shadow); font-size: .78rem;
+      transition: opacity .2s ease, translate .2s ease;
+    }
+    .toast.show { opacity: 1; translate: -50% 0; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 980px) {
+      .dashboard-grid, .calendar-shell { grid-template-columns: 1fr; }
+      .board { grid-template-columns: repeat(3, minmax(270px, 1fr)); }
+      .integration-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 700px) {
+      .demo-strip { justify-content: flex-start; overflow-x: auto; white-space: nowrap; }
+      .app-header { padding: 11px 18px; }
+      .privacy-label { display: none; }
+      .brand-text strong { font-size: .88rem; }
+      .primary-nav { padding-inline: 18px; }
+      .main { padding: 16px 18px 30px; }
+      .page-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .board { display: flex; scroll-snap-type: x mandatory; }
+      .column { min-width: calc(100vw - 50px); scroll-snap-align: start; }
+      .chat-layout { grid-template-columns: 1fr; }
+      .conversation-side { min-height: auto; }
+      .calendar-card { overflow-x: auto; }
+      .calendar-grid { min-width: 650px; }
+      .integration-grid, .form-row { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+  <div class="demo-strip" role="note">
+    <span class="demo-dot" aria-hidden="true"></span>
+    展示模式 · 無真實資料 · 不連線外部服務 · 重新整理即清除本次操作
+  </div>
+  <header class="app-header">
+    <div class="brand" aria-label="Personal Workstation V1 Demo">
+      <div class="brand-mark" aria-hidden="true">PW</div>
+      <div class="brand-text"><strong>Personal Workstation</strong><span>V1 DEMO</span></div>
+    </div>
+    <div class="header-actions">
+      <span class="privacy-label">公開展示版 · 無個人資料</span>
+      <div class="notification-wrap">
+        <button class="icon-button" id="notificationButton" type="button" aria-label="開啟通知中心" aria-expanded="false" aria-controls="notificationPanel">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+        </button>
+        <section class="notification-panel" id="notificationPanel" aria-label="通知中心" hidden>
+          <div class="panel-head"><h2>通知中心</h2><span class="muted small">0 則</span></div>
+          <div class="empty-state compact">
+            <strong>目前沒有通知</strong><p>任務提醒、Blocked 與 Waiting Human 狀態會集中顯示在這裡。</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </header>
+
+  <nav class="primary-nav" aria-label="主要導覽">
+    <button class="nav-button" type="button" data-view="today" aria-current="page">首頁</button>
+    <button class="nav-button" type="button" data-view="board">任務看板</button>
+    <button class="nav-button" type="button" data-view="calendar">行事曆</button>
+    <button class="nav-button" type="button" data-view="ai">AI 助理</button>
+    <button class="nav-button" type="button" data-view="execution">AI 執行狀態</button>
+    <button class="nav-button" type="button" data-view="summary">摘要</button>
+    <button class="nav-button" type="button" data-view="search">搜尋</button>
+    <button class="nav-button" type="button" data-view="settings">設定</button>
+  </nav>
+
+  <main class="main" id="main" tabindex="-1">
+    <section class="view" id="view-today" aria-labelledby="today-title">
+      <div class="page-heading">
+        <div><p class="eyebrow">Today · 模組化首頁</p><h1 id="today-title">今天，從重要的事開始。</h1><p class="muted small">將任務、行程與 AI 工作狀態集中在同一個工作面板。</p></div>
+        <div class="toolbar"><button type="button" id="customizeButton">自訂首頁</button><button type="button" class="primary open-task-modal">＋ 新增任務</button></div>
+      </div>
+      <div class="dashboard-grid" id="dashboardGrid">
+        <div class="dashboard-main">
+          <section class="card dashboard-module" data-module="focus">
+            <div class="card-head"><h2>今日任務 <span>0</span></h2><span class="module-grip" aria-hidden="true">••••</span></div>
+            <div class="empty-state"><div class="empty-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="8" y="7" width="32" height="34" rx="5"/><path d="M16 18h16M16 25h12M16 32h8"/></svg></div><strong>今天還沒有排定任務</strong><p>新增任務後，可設定優先順序、Blocked 狀態與行事曆關聯。</p></div>
+            <div class="customizer"><button type="button" data-move="down">下移模組</button><button type="button" data-hide>暫時隱藏</button></div>
+          </section>
+          <section class="card dashboard-module" data-module="calendar">
+            <div class="card-head"><h2>行事曆 <span>未連線</span></h2><span class="module-grip" aria-hidden="true">••••</span></div>
+            <div class="empty-state"><div class="empty-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="32" rx="5"/><path d="M6 19h36M16 5v8M32 5v8"/></svg></div><strong>沒有可顯示的行程</strong><p>Demo 不會連接 Google Calendar。正式版可在這裡顯示與任務相關的行程。</p></div>
+            <div class="customizer"><button type="button" data-move="up">上移模組</button><button type="button" data-hide>暫時隱藏</button></div>
+          </section>
+        </div>
+        <aside class="dashboard-side">
+          <section class="card dashboard-module" data-module="execution">
+            <div class="card-head"><h2>AI 執行狀態</h2><span class="module-grip" aria-hidden="true">••••</span></div>
+            <div class="stats"><div class="stat"><strong>0</strong><span>Running</span></div><div class="stat"><strong>0</strong><span>Waiting Human</span></div><div class="stat"><strong>0</strong><span>Failed</span></div><div class="stat"><strong>0</strong><span>Completed Today</span></div></div>
+            <div class="customizer"><button type="button" data-hide>暫時隱藏</button></div>
+          </section>
+          <section class="card dashboard-module" data-module="rates">
+            <div class="card-head"><h2>玉山外幣匯率 <span>未載入</span></h2><button type="button" class="ghost demo-network">重新整理</button></div>
+            <div style="overflow-x:auto"><table class="rate-table"><thead><tr><th>幣別</th><th>即期買入</th><th>即期賣出</th></tr></thead><tbody><tr><td>USD</td><td class="unavailable">—</td><td class="unavailable">—</td></tr><tr><td>CNY</td><td class="unavailable">—</td><td class="unavailable">—</td></tr><tr><td>JPY</td><td class="unavailable">—</td><td class="unavailable">—</td></tr><tr><td>EUR</td><td class="unavailable">—</td><td class="unavailable">—</td></tr><tr><td>AUD</td><td class="unavailable">—</td><td class="unavailable">—</td></tr></tbody></table></div>
+            <p class="muted small">展示版不呼叫匯率 API，也不保留歷史數值。</p>
+            <div class="customizer"><button type="button" data-hide>暫時隱藏</button></div>
+          </section>
+          <section class="card dashboard-module" data-module="notifications">
+            <div class="card-head"><h2>工作台通知 <span>0</span></h2><span class="module-grip" aria-hidden="true">••••</span></div>
+            <div class="empty-state compact"><strong>沒有待處理通知</strong><p>需要人工介入的工作會出現在這裡。</p></div>
+            <div class="customizer"><button type="button" data-hide>暫時隱藏</button></div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="view" id="view-board" aria-labelledby="board-title" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Tasks · Board</p><h1 id="board-title">任務看板</h1><p class="muted small">Todo / Doing / Done，呈現任務從建立到完成的流向。</p></div><button type="button" class="primary open-task-modal">＋ 新增任務</button></div>
+      <div class="board" id="board">
+        <section class="column" data-status="todo"><div class="column-head"><h2>Todo <span class="count">0</span></h2><button class="add-column-task" type="button" data-default-status="todo" aria-label="新增 Todo 任務">＋</button></div><div class="task-list" id="list-todo"><div class="empty-state board-empty"><strong>尚無待辦任務</strong><p>從右上角或欄位的＋建立第一張卡片。</p></div></div></section>
+        <section class="column" data-status="doing"><div class="column-head"><h2>Doing <span class="count">0</span></h2><button class="add-column-task" type="button" data-default-status="doing" aria-label="新增 Doing 任務">＋</button></div><div class="task-list" id="list-doing"><div class="empty-state board-empty"><strong>目前沒有進行中任務</strong><p>任務開始處理後會移到這裡。</p></div></div></section>
+        <section class="column" data-status="done"><div class="column-head"><h2>Done <span class="count">0</span></h2><button class="add-column-task" type="button" data-default-status="done" aria-label="新增 Done 任務">＋</button></div><div class="task-list" id="list-done"><div class="empty-state board-empty"><strong>尚無已完成任務</strong><p>完成的工作會保留在這裡，之後可歸檔。</p></div></div></section>
+      </div>
+      <p class="muted small">本頁新增的內容只存在記憶體中，不會寫入瀏覽器儲存空間、正式資料庫或任何外部服務。</p>
+    </section>
+
+    <section class="view" id="view-calendar" aria-labelledby="calendar-title" hidden>
+      <div class="page-heading"><div><p class="eyebrow">Calendar · Reminders</p><h1 id="calendar-title">行事曆</h1><p class="muted small">查看排程、提醒與可觸發的 AI 工作。</p></div><div class="toolbar"><button type="button" class="demo-network">同步</button><button type="button" class="primary demo-network">連接 Google Calendar</button></div></div>
+      <div class="calendar-shell"><section class="card calendar-card"><div class="card-head"><h2 id="calendarMonth">月份</h2><span class="muted small">月檢視</span></div><div class="calendar-grid" id="calendarGrid" aria-label="空白月曆"></div></section><aside class="calendar-side"><section class="card"><div class="card-head"><h2>今日行程</h2><span class="muted small">0</span></div><div class="empty-state compact"><strong>沒有行程</strong><p>展示版不讀取任何日曆資料。</p></div></section><section class="card"><div class="card-head"><h2>連線狀態</h2></div><p class="integration-state"><span class="state-dot"></span>Google Calendar 未連線</p><p class="muted small">沒有 OAuth token，也不會開啟授權流程。</p></section></aside></div>
+    </section>
+
+    <section class="view" id="view-ai" aria-labelledby="ai-title" hidden>
+      <div class="page-heading"><div><p class="eyebrow">AI Chat · Assistant</p><h1 id="ai-title">AI 助理</h1><p class="muted small">從對話釐清需求、建立任務，或追蹤執行狀態。</p></div><button type="button" class="primary demo-ai-new">＋ 新對話</button></div>
+      <div class="chat-layout"><aside class="card conversation-side"><div class="card-head"><h2>對話</h2><span class="muted small">0</span></div><div class="empty-state compact"><strong>尚無對話</strong><p>展示版不含歷史紀錄。</p></div></aside><section class="card chat-panel"><div class="card-head"><h2>助理工作區</h2><span class="status-pill"><span class="state-dot"></span>離線展示</span></div><div class="empty-state chat-empty"><div class="empty-icon" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M9 10h30v23H22l-8 6v-6H9z"/><path d="M17 20h14M17 26h9"/></svg></div><strong>可以從一個需求開始</strong><p>正式版可將對話轉成 Task，並連結 AI Run。此 Demo 不會傳送文字或呼叫模型。</p></div><div class="composer"><label for="aiInput">輸入訊息<textarea id="aiInput" placeholder="例如：整理這週需要完成的工作（展示版不會送出）"></textarea></label><div class="compose-actions"><span class="muted small">不儲存、不傳送</span><button type="button" class="primary" id="aiSend">送出</button></div></div></section></div>
+    </section>
+
+    <section class="view" id="view-execution" aria-labelledby="execution-title" hidden><div class="page-heading"><div><p class="eyebrow">AI Execution Center</p><h1 id="execution-title">AI 執行狀態</h1><p class="muted small">追蹤 Run、目前節點、人工確認與驗證結果。</p></div><button type="button" class="primary demo-run">＋ 建立 Run</button></div><section class="card placeholder-page"><div class="stats"><div class="stat"><strong>0</strong><span>Running</span></div><div class="stat"><strong>0</strong><span>Waiting Human</span></div><div class="stat"><strong>0</strong><span>Failed</span></div><div class="stat"><strong>0</strong><span>Completed Today</span></div></div><div class="empty-state"><strong>目前沒有 AI Run</strong><p>正式版會在這裡呈現流程節點、時間軸、Retry 與 Human Gate。</p></div></section></section>
+    <section class="view" id="view-summary" aria-labelledby="summary-title" hidden><div class="page-heading"><div><p class="eyebrow">Summary</p><h1 id="summary-title">工作摘要</h1><p class="muted small">把任務進度與關鍵變更整理成可追蹤的紀錄。</p></div></div><section class="card placeholder-page"><div class="empty-state"><strong>尚無摘要</strong><p>完成工作或建立摘要後，時間軸會顯示在這裡。</p></div></section></section>
+    <section class="view" id="view-search" aria-labelledby="search-title" hidden><div class="page-heading"><div><p class="eyebrow">Search</p><h1 id="search-title">搜尋</h1><p class="muted small">跨任務、摘要與工作紀錄查找內容。</p></div></div><section class="card placeholder-page"><label for="searchInput">搜尋工作台<input id="searchInput" type="search" placeholder="輸入關鍵字（展示版沒有可搜尋資料）"></label><div class="empty-state"><strong>沒有搜尋結果</strong><p>展示版不含任務、附件或歷史紀錄。</p></div></section></section>
+    <section class="view" id="view-settings" aria-labelledby="settings-title" hidden><div class="page-heading"><div><p class="eyebrow">Settings · Integrations</p><h1 id="settings-title">設定與連線</h1><p class="muted small">所有服務在展示版中保持未連線。</p></div></div><div class="integration-grid"><section class="card integration-card"><h2>Supabase</h2><span class="status-pill"><span class="state-dot"></span>未設定</span><p>沒有資料庫網址、公開金鑰、Session 或使用者資料。</p><button type="button" disabled>設定連線</button></section><section class="card integration-card"><h2>Google Calendar</h2><span class="status-pill"><span class="state-dot"></span>未連線</span><p>沒有 OAuth token、日曆清單或活動資料。</p><button type="button" disabled>連接服務</button></section><section class="card integration-card"><h2>Google Drive</h2><span class="status-pill"><span class="state-dot"></span>未連線</span><p>沒有附件、資料夾 ID、備份或容量資訊。</p><button type="button" disabled>連接服務</button></section></div></section>
+  </main>
+
+  <dialog class="modal" id="taskModal" aria-labelledby="taskModalTitle">
+    <form class="modal-inner" id="taskForm" method="dialog">
+      <div class="modal-head"><div><p class="eyebrow">New Task</p><h2 id="taskModalTitle">新增任務卡片</h2></div><button class="close-modal" type="button" id="closeTaskModal" aria-label="關閉">×</button></div>
+      <label for="taskTitle">任務名稱<input id="taskTitle" name="title" required maxlength="80" placeholder="輸入任務名稱"></label>
+      <label for="taskDescription">說明（選填）<textarea id="taskDescription" name="description" maxlength="240" placeholder="補充完成條件或背景"></textarea></label>
+      <div class="form-row"><label for="taskStatus">狀態<select id="taskStatus" name="status"><option value="todo">Todo</option><option value="doing">Doing</option><option value="done">Done</option></select></label><label for="taskPriority">Priority<select id="taskPriority" name="priority"><option value="Regular">Regular</option><option value="High">High</option><option value="Urgent">Urgent</option></select></label></div>
+      <label class="checkbox" for="taskBlocked"><input id="taskBlocked" name="blocked" type="checkbox">標示為 Blocked</label>
+      <label class="blocked-reason" id="blockedReasonWrap" for="blockedReason" hidden>Blocked 原因（選填）<input id="blockedReason" name="blockedReason" maxlength="100" placeholder="等待決策、權限或其他任務"></label>
+      <p class="muted small">僅建立在本頁記憶體中；不會上傳、持久化或寫入正式資料庫。</p>
+      <div class="modal-actions"><button type="button" id="cancelTaskModal">取消</button><button type="submit" class="primary">建立卡片</button></div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      'use strict';
+      const qs = (selector, scope = document) => scope.querySelector(selector);
+      const qsa = (selector, scope = document) => Array.from(scope.querySelectorAll(selector));
+      const toast = qs('#toast');
+      let toastTimer;
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+      };
+
+      const switchView = (view) => {
+        qsa('.view').forEach((section) => { section.hidden = section.id !== `view-${view}`; });
+        qsa('.nav-button').forEach((button) => {
+          if (button.dataset.view === view) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        });
+        const title = qs(`#view-${view} h1`);
+        if (title) title.focus?.({ preventScroll: true });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      qsa('.nav-button').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.view)));
+
+      const notificationButton = qs('#notificationButton');
+      const notificationPanel = qs('#notificationPanel');
+      notificationButton.addEventListener('click', () => {
+        const willOpen = notificationPanel.hidden;
+        notificationPanel.hidden = !willOpen;
+        notificationButton.setAttribute('aria-expanded', String(willOpen));
+      });
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.notification-wrap')) {
+          notificationPanel.hidden = true;
+          notificationButton.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      const customizeButton = qs('#customizeButton');
+      customizeButton.addEventListener('click', () => {
+        const opened = customizeButton.getAttribute('aria-pressed') !== 'true';
+        customizeButton.setAttribute('aria-pressed', String(opened));
+        customizeButton.textContent = opened ? '完成自訂' : '自訂首頁';
+        qsa('.customizer').forEach((item) => item.classList.toggle('is-open', opened));
+      });
+      qsa('[data-hide]').forEach((button) => button.addEventListener('click', () => {
+        const module = button.closest('.dashboard-module');
+        module.style.display = 'none';
+        showToast('模組已在本次展示中隱藏；重新整理即可還原。');
+      }));
+      qsa('[data-move]').forEach((button) => button.addEventListener('click', () => {
+        const module = button.closest('.dashboard-module');
+        const direction = button.dataset.move;
+        if (direction === 'up' && module.previousElementSibling) module.parentElement.insertBefore(module, module.previousElementSibling);
+        if (direction === 'down' && module.nextElementSibling) module.parentElement.insertBefore(module.nextElementSibling, module);
+        showToast('模組順序已在本次展示中調整。');
+      }));
+
+      const modal = qs('#taskModal');
+      const form = qs('#taskForm');
+      const titleInput = qs('#taskTitle');
+      const statusInput = qs('#taskStatus');
+      const blockedInput = qs('#taskBlocked');
+      const blockedReasonWrap = qs('#blockedReasonWrap');
+      const openTaskModal = (status = 'todo') => {
+        form.reset();
+        statusInput.value = status;
+        blockedReasonWrap.hidden = true;
+        modal.showModal();
+        setTimeout(() => titleInput.focus(), 0);
+      };
+      qsa('.open-task-modal').forEach((button) => button.addEventListener('click', () => openTaskModal()));
+      qsa('.add-column-task').forEach((button) => button.addEventListener('click', () => openTaskModal(button.dataset.defaultStatus)));
+      const closeModal = () => modal.close();
+      qs('#closeTaskModal').addEventListener('click', closeModal);
+      qs('#cancelTaskModal').addEventListener('click', closeModal);
+      blockedInput.addEventListener('change', () => { blockedReasonWrap.hidden = !blockedInput.checked; });
+
+      const tasks = [];
+      const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+      const renderBoard = () => {
+        ['todo', 'doing', 'done'].forEach((status) => {
+          const list = qs(`#list-${status}`);
+          const statusTasks = tasks.filter((task) => task.status === status);
+          qs(`.column[data-status="${status}"] .count`).textContent = statusTasks.length;
+          if (!statusTasks.length) {
+            const labels = { todo: ['尚無待辦任務', '從右上角或欄位的＋建立第一張卡片。'], doing: ['目前沒有進行中任務', '任務開始處理後會移到這裡。'], done: ['尚無已完成任務', '完成的工作會保留在這裡，之後可歸檔。'] };
+            list.innerHTML = `<div class="empty-state board-empty"><strong>${labels[status][0]}</strong><p>${labels[status][1]}</p></div>`;
+            return;
+          }
+          list.innerHTML = statusTasks.map((task) => `<article class="task-card" data-task-id="${task.id}"><div class="task-card-top"><span class="priority ${task.priority}">${task.priority}</span>${task.blocked ? '<span class="blocked">Blocked</span>' : ''}</div><h3>${escapeHtml(task.title)}</h3>${task.description ? `<p>${escapeHtml(task.description)}</p>` : ''}${task.blockedReason ? `<p>原因：${escapeHtml(task.blockedReason)}</p>` : ''}<div class="task-card-foot"><label class="sr-only" for="move-${task.id}">移動任務</label><select id="move-${task.id}" data-move-task="${task.id}"><option value="todo" ${task.status === 'todo' ? 'selected' : ''}>Todo</option><option value="doing" ${task.status === 'doing' ? 'selected' : ''}>Doing</option><option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option></select><button class="remove-task" type="button" data-remove-task="${task.id}">移除</button></div></article>`).join('');
+        });
+        qsa('[data-move-task]').forEach((select) => select.addEventListener('change', () => {
+          const task = tasks.find((item) => item.id === Number(select.dataset.moveTask));
+          if (task) task.status = select.value;
+          renderBoard();
+        }));
+        qsa('[data-remove-task]').forEach((button) => button.addEventListener('click', () => {
+          const index = tasks.findIndex((item) => item.id === Number(button.dataset.removeTask));
+          if (index >= 0) tasks.splice(index, 1);
+          renderBoard();
+          showToast('展示卡片已移除。');
+        }));
+      };
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const data = new FormData(form);
+        tasks.push({ id: Date.now(), title: data.get('title').trim(), description: data.get('description').trim(), status: data.get('status'), priority: data.get('priority'), blocked: data.get('blocked') === 'on', blockedReason: data.get('blockedReason').trim() });
+        renderBoard();
+        closeModal();
+        switchView('board');
+        showToast('已建立一張暫存展示卡片；重新整理後會清除。');
+      });
+
+      const buildCalendar = () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        qs('#calendarMonth').textContent = `${year} 年 ${month + 1} 月`;
+        const first = new Date(year, month, 1);
+        const start = new Date(year, month, 1 - first.getDay());
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+        let html = weekdays.map((day) => `<div class="weekday">${day}</div>`).join('');
+        for (let index = 0; index < 42; index += 1) {
+          const date = new Date(start); date.setDate(start.getDate() + index);
+          const outside = date.getMonth() !== month;
+          const today = date.toDateString() === now.toDateString();
+          html += `<div class="day${outside ? ' outside' : ''}${today ? ' today' : ''}">${date.getDate()}</div>`;
+        }
+        qs('#calendarGrid').innerHTML = html;
+      };
+      buildCalendar();
+
+      qsa('.demo-network').forEach((button) => button.addEventListener('click', () => showToast('展示版不會連線外部服務，也不會啟動 OAuth。')));
+      qsa('.demo-run').forEach((button) => button.addEventListener('click', () => showToast('展示版不會建立或執行 AI Run。')));
+      qsa('.demo-ai-new').forEach((button) => button.addEventListener('click', () => showToast('已保留新對話入口；展示版不建立對話資料。')));
+      qs('#aiSend').addEventListener('click', () => {
+        const input = qs('#aiInput');
+        if (!input.value.trim()) { input.focus(); showToast('請先輸入內容。'); return; }
+        showToast('展示版不會傳送或保存訊息。');
+      });
+      qs('#searchInput').addEventListener('input', () => showToast('展示版沒有可搜尋的資料。'));
+    })();
+  </script>
+</body>
+</html>
